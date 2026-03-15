@@ -62,3 +62,4 @@ export const uploadImage = async (file) => {
  
   return data.publicUrl
 }
+

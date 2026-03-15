@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase, getProducts, createProduct, updateProduct, deleteProduct as dbDeleteProduct, uploadImage } from "./supabase.js";
  
 // ── DATOS ────────────────────────────────────────────────────────────────────
 const INITIAL_PRODUCTS = [
@@ -16,7 +17,7 @@ const INITIAL_PRODUCTS = [
   { id: 12, name: "Perfume Aqua Marine",       category: "Perfumería", price: 9800,  stock: 15, description: "Fragancia fresca acuática, 60ml EDT, perfecto para verano.", emoji: "🌊", tag: "Nuevo" },
 ];
  
-const ADMIN      = { email: "admin@tienda.com", password: "admin123", name: "Administrador" };
+const ADMIN      = { email: "mildetalles.24", password: "mildetalles.24", name: "Administrador" };
 const CATEGORIES = ["Todos", "Librería", "Regalería", "Perfumería"];
 const fmt        = (n) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
  
@@ -63,11 +64,11 @@ const css = `
     position: fixed; inset: 0; z-index: 9000;
     background: #fdf6ee;
     display: flex; align-items: center; justify-content: center;
-    animation: splashFade 1.0s ease-out 1.6s forwards;
+    animation: splashFade 0.5s ease-out 1.6s forwards;
     pointer-events: none;
   }
   .splash-logo {
-    display: flex; align-items: baseline; gap: 20px;
+    display: flex; align-items: baseline; gap: 10px;
     animation: splashLogoOut 0.55s cubic-bezier(0.4,0,0.2,1) 1.6s forwards;
   }
   @keyframes splashFade    { to { opacity: 0; visibility: hidden; } }
@@ -155,6 +156,10 @@ const css = `
   /* ── MISC ── */
   .divider       { border: none; border-top: 1px solid ${C.border}; }
   .section-label { font-family: 'Inter',sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: ${C.muted}; }
+  .wa-float { position: fixed; bottom: 24px; right: 24px; z-index: 500; width: 56px; height: 56px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(37,211,102,0.5); cursor: pointer; border: none; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; animation: waPulse 2.5s ease-in-out infinite; }
+  .wa-float:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(37,211,102,0.65); }
+  @keyframes waPulse { 0%,100%{box-shadow:0 4px 20px rgba(37,211,102,0.5)} 50%{box-shadow:0 4px 36px rgba(37,211,102,0.8)} }
+ 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: ${C.accent}; color: #fff; padding: 11px 20px; border-radius: 8px; font-family: 'Inter',sans-serif; font-weight: 600; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,.18); animation: slideUp .25s; white-space: nowrap; }
  
   /* ── TABLET 640px+ ── */
@@ -206,15 +211,13 @@ function LoginModal({ onClose, onLogin }) {
         <p className="section-label" style={{ marginBottom: 4 }}>Zona restringida</p>
         <h2 style={{ fontSize: 24, marginBottom: 28 }}>Acceso Administrador</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div><Label text="Email" /><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@tienda.com" /></div>
+          <div><Label text="Usuario" /><input className="input" type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder="Usuario" /></div>
           <div><Label text="Contraseña" /><input className="input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && handle()} /></div>
           {err && <p style={{ color: C.danger, fontSize: 13 }}>{err}</p>}
           <button className="btn-primary" style={{ width: "100%", padding: 13, marginTop: 4 }} onClick={handle}>Ingresar</button>
           <button className="btn-ghost" style={{ width: "100%", textAlign: "center" }} onClick={onClose}>← Volver a la tienda</button>
         </div>
-        <div style={{ marginTop: 20, padding: "12px 14px", background: C.accentLt, borderRadius: 8, fontSize: 12, color: C.muted, lineHeight: 1.8 }}>
-          🔑 Demo: <strong style={{ color: C.text }}>admin@tienda.com</strong> / admin123
-        </div>
+ 
       </div>
     </div>
   );
@@ -314,7 +317,14 @@ function CartModal({ cart, products, onClose, onUpdate, onCheckout }) {
                 <p className="section-label">Total</p>
                 <p style={{ fontSize: 26, fontFamily: "'Playfair Display',serif", fontWeight: 700, marginTop: 2 }}>{fmt(total)}</p>
               </div>
-              <button className="btn-primary" style={{ padding: "13px 28px", fontSize: 14 }} onClick={onCheckout}>Finalizar compra</button>
+              <button
+                className="btn-primary"
+                style={{ padding: "13px 24px", fontSize: 14, background: "#25D366", display: "flex", alignItems: "center", gap: 8 }}
+                onClick={() => onCheckout(items, total)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.123 1.526 5.855L.057 23.04a.75.75 0 00.916.899l5.04-1.405A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.697-.504-5.243-1.383l-.374-.22-3.863 1.078 1.032-3.77-.241-.389A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                Pedir por WhatsApp
+              </button>
             </div>
           </>
         )}
@@ -329,12 +339,17 @@ function ProductFormModal({ product, onSave, onClose }) {
   const [form, setForm] = useState(product ? { ...product, price: String(product.price), stock: String(product.stock) } : empty);
   const upd  = (k, v) => setForm(f => ({ ...f, [k]: v }));
  
-  const handleImage = (e) => {
+  const [uploading, setUploading] = useState(false);
+ 
+  const handleImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => upd("image", ev.target.result);
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      upd("image", url);
+    } catch { alert("Error al subir imagen"); }
+    finally { setUploading(false); }
   };
  
   const save = () => {
@@ -359,7 +374,8 @@ function ProductFormModal({ product, onSave, onClose }) {
                     <span style={{ fontSize: 13, color: C.muted }}>Tocá para subir una imagen</span>
                   </>
               }
-              <input type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} />
+              {uploading && <span style={{ fontSize: 12, color: C.muted }}>Subiendo...</span>}
+              <input type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} disabled={uploading} />
             </label>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -506,18 +522,27 @@ function AdminPanel({ products, onAdd, onEdit, onDelete }) {
  
 // ── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [products,  setProducts]  = useState(INITIAL_PRODUCTS);
-  const [user,      setUser]      = useState(null);
-  const [cart,      setCart]      = useState({});
-  const [view,      setView]      = useState("shop");
-  const [showLogin, setShowLogin] = useState(false);
-  const [showCart,  setShowCart]  = useState(false);
-  const [selected,  setSelected]  = useState(null);
-  const [search,    setSearch]    = useState("");
-  const [filterCat, setFilterCat] = useState("Todos");
-  const [sortBy,    setSortBy]    = useState("default");
-  const [toast,     setToast]     = useState(null);
+  const [products,   setProducts]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [user,       setUser]       = useState(null);
+  const [cart,       setCart]       = useState({});
+  const [view,       setView]       = useState("shop");
+  const [showLogin,  setShowLogin]  = useState(false);
+  const [showCart,   setShowCart]   = useState(false);
+  const [selected,   setSelected]   = useState(null);
+  const [search,     setSearch]     = useState("");
+  const [filterCat,  setFilterCat]  = useState("Todos");
+  const [sortBy,     setSortBy]     = useState("default");
+  const [toast,      setToast]      = useState(null);
   const [splashDone, setSplashDone] = useState(false);
+ 
+  // Cargar productos desde Supabase
+  useEffect(() => {
+    getProducts()
+      .then(data => { setProducts(data); setLoading(false); })
+      .catch(err  => { console.error(err); setLoading(false); });
+  }, []);
+ 
   useEffect(() => { const t = setTimeout(() => setSplashDone(true), 2200); return () => clearTimeout(t); }, []);
  
   const showToast = (msg) => setToast(msg);
@@ -527,13 +552,43 @@ export default function App() {
     .filter(p => (filterCat === "Todos" || p.category === filterCat) && p.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => sortBy === "asc" ? a.price - b.price : sortBy === "desc" ? b.price - a.price : a.id - b.id);
  
-  const addToCart     = (id) => { setCart(c => ({ ...c, [id]: (c[id] || 0) + 1 })); showToast("Producto agregado al carrito ✓"); };
-  const updateCart    = (id, qty) => qty <= 0 ? setCart(c => { const n = { ...c }; delete n[id]; return n; }) : setCart(c => ({ ...c, [id]: qty }));
-  const checkout      = () => { setCart({}); setShowCart(false); showToast("¡Compra realizada con éxito! 🎉"); };
-  const logout        = () => { setUser(null); setView("shop"); showToast("Sesión cerrada"); };
-  const addProduct    = (p) => { setProducts(ps => [...ps, p]); showToast("Producto creado ✓"); };
-  const editProduct   = (p) => { setProducts(ps => ps.map(x => x.id === p.id ? p : x)); showToast("Producto actualizado ✓"); };
-  const deleteProduct = (id) => { setProducts(ps => ps.filter(p => p.id !== id)); showToast("Producto eliminado"); };
+  const addToCart  = (id) => { setCart(c => ({ ...c, [id]: (c[id] || 0) + 1 })); showToast("Producto agregado al carrito ✓"); };
+  const updateCart = (id, qty) => qty <= 0 ? setCart(c => { const n = { ...c }; delete n[id]; return n; }) : setCart(c => ({ ...c, [id]: qty }));
+  const WA_NUMBER = "5493815779570";
+ 
+  const checkout = (items, total) => {
+    const lines = items.map(i => `• ${i.name} x${i.qty} — ${fmt(i.price * i.qty)}`).join("%0A");
+    const msg   = `Hola! Me gustaría hacer el siguiente pedido:%0A%0A${lines}%0A%0A*Total: ${fmt(total)}*`;
+    window.open(`https://wa.me/5493815779570?text=${msg}`, "_blank");
+    setCart({});
+    setShowCart(false);
+    showToast("Redirigiendo a WhatsApp 🎉");
+  };
+  const logout     = () => { setUser(null); setView("shop"); showToast("Sesión cerrada"); };
+ 
+  const addProduct = async (p) => {
+    try {
+      const saved = await createProduct(p);
+      setProducts(ps => [...ps, saved]);
+      showToast("Producto creado ✓");
+    } catch { showToast("Error al crear producto"); }
+  };
+ 
+  const editProduct = async (p) => {
+    try {
+      const saved = await updateProduct(p.id, p);
+      setProducts(ps => ps.map(x => x.id === saved.id ? saved : x));
+      showToast("Producto actualizado ✓");
+    } catch { showToast("Error al actualizar"); }
+  };
+ 
+  const deleteProduct = async (id) => {
+    try {
+      await dbDeleteProduct(id);
+      setProducts(ps => ps.filter(p => p.id !== id));
+      showToast("Producto eliminado");
+    } catch { showToast("Error al eliminar"); }
+  };
  
   return (
     <>
@@ -552,7 +607,7 @@ export default function App() {
       <nav className="nav">
         <div className="nav-inner">
           <div className="nav-logo" style={{ display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => setView("shop")}>
-            <img src="/logo.jpg" alt="Mil Detalles" style={{ height: 50, width: 'auto', objectFit: 'contain' }} />
+            <img src="/logo.jpg" alt="Mil Detalles" style={{ height: 38, width: 'auto', objectFit: 'contain' }} />
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {user && (
@@ -575,6 +630,14 @@ export default function App() {
       {/* SHOP */}
       {view === "shop" && (
         <>
+          {/* Loading */}
+          {loading && (
+            <div style={{ textAlign: "center", padding: "80px 0", color: C.muted }}>
+              <p style={{ fontSize: 32, marginBottom: 12 }}>⏳</p>
+              <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 18 }}>Cargando productos...</p>
+            </div>
+          )}
+ 
           {/* Título destacado */}
           <div style={{
             background: "#ffffff",
@@ -638,8 +701,8 @@ export default function App() {
  
           {/* Footer */}
           <div style={{ borderTop: `1px solid ${C.border}`, padding: "28px 24px", textAlign: "center" }}>
-            <p style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>Mil Detalles</p>
-            <p style={{ color: C.muted, fontSize: 12 }}></p>
+            <p style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>Lumina Store</p>
+            <p style={{ color: C.muted, fontSize: 12 }}>© 2025 · Todos los derechos reservados</p>
             {!user && (
               <button onClick={() => setShowLogin(true)} style={{ marginTop: 14, background: "none", border: "none", color: "#ccc", fontSize: 11, cursor: "pointer", letterSpacing: 0.5 }}>
                 Acceso administrativo
@@ -658,8 +721,15 @@ export default function App() {
       {selected   && <ProductModal product={selected} onClose={() => setSelected(null)} onAdd={addToCart} />}
       {showLogin  && <LoginModal onClose={() => setShowLogin(false)} onLogin={() => { setUser(ADMIN); showToast(`Bienvenido, ${ADMIN.name}`); }} />}
       {showCart   && <CartModal cart={cart} products={products} onClose={() => setShowCart(false)} onUpdate={updateCart} onCheckout={checkout} />}
-      {toast      && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+ 
+      {/* BOTÓN FLOTANTE WHATSAPP */}
+      <a className="wa-float" href="https://wa.me/5493815779570" target="_blank" rel="noopener noreferrer" title="Contactanos por WhatsApp">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.123 1.526 5.855L.057 23.04a.75.75 0 00.916.899l5.04-1.405A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.697-.504-5.243-1.383l-.374-.22-3.863 1.078 1.032-3.77-.241-.389A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+        </svg>
+      </a>
     </>
   );
 }
- 
