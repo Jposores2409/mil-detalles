@@ -120,7 +120,7 @@ const css = `
  
   /* ── TAGS & PILLS ── */
   .tag { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; font-family: 'Inter',sans-serif; }
-  .pill { padding: 6px 14px; border-radius: 20px; border: 1px solid ${C.border}; background: transparent; color: ${C.muted}; font-family: 'Inter',sans-serif; font-weight: 500; font-size: 12px; cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+  .pill { padding: 6px 14px; border-radius: 20px; border: 1px solid ${C.borderDk}; background: #e8e4de;color: ${C.muted}; font-family: 'Inter',sans-serif; font-weight: 500; font-size: 12px; cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
   .pill:hover  { border-color: ${C.borderDk}; color: ${C.text}; }
   .pill.active { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
  
