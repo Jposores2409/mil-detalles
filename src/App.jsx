@@ -260,7 +260,7 @@ function ProductModal({ product, onClose, onAdd, isFav, onToggleFav }) {
         {/* Emoji hero */}
         <div style={{ background: C.accentLt, borderRadius: 10, height: 180, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, overflow: "hidden" }}>
           {product.image
-            ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} />
+            ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10 }} />
             : <span style={{ fontSize: 72 }}>{product.emoji || "📦"}</span>
           }
         </div>
@@ -322,7 +322,7 @@ function CartModal({ cart, products, onClose, onUpdate, onCheckout }) {
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
                 <div style={{ width: 48, height: 48, background: C.accentLt, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0, overflow: "hidden" }}>
                   {item.image
-                    ? <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ? <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                     : <span>{item.emoji || "📦"}</span>
                   }
                 </div>
@@ -446,7 +446,7 @@ function ProductCard({ product, onClick, isFav, onToggleFav }) {
     <div className="card card-click" onClick={() => onClick(product)} style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ background: C.accentLt, height: 140, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative" }}>
         {product.image
-          ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           : <span style={{ fontSize: 52 }}>{product.emoji || "📦"}</span>
         }
         <button className={`fav-btn ${isFav ? "active" : ""}`} onClick={e => { e.stopPropagation(); onToggleFav(product.id); }} title={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}>
@@ -570,7 +570,7 @@ function AdminPanel({ products, onAdd, onEdit, onDelete, categories, onAddCatego
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 6, background: C.accentLt, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {p.image
-                          ? <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ? <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "contain"}} />
                           : <span style={{ fontSize: 18 }}>{p.emoji || "📦"}</span>
                         }
                       </div>
