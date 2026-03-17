@@ -258,9 +258,9 @@ function ProductModal({ product, onClose, onAdd, isFav, onToggleFav }) {
         <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.muted, lineHeight: 1, padding: 4 }}>×</button>
  
         {/* Emoji hero */}
-        <div style={{ background: C.accentLt, borderRadius: 10, height: 200, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, overflow: "hidden", padding: "16px" }}>
+        <div style={{ background: "#ffffff", borderRadius: 10, marginBottom: 24, overflow: "hidden" }}>
           {product.image
-            ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10 }} />
+            ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "auto", display: "block", borderRadius: 10 }} />
             : <span style={{ fontSize: 72 }}>{product.emoji || "📦"}</span>
           }
         </div>
@@ -444,7 +444,7 @@ function ProductCard({ product, onClick, isFav, onToggleFav }) {
   const finalPrice  = hasDiscount ? product.price * (1 - product.discount/100) : product.price;
   return (
     <div className="card card-click" onClick={() => onClick(product)} style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ background: "#ffffff", height: 180, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative", padding: "12px" }}>
+      <div style={{ background: "#ffffff", minHeight: 160, maxHeight: 220, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative", padding: "12px" }}>
         {product.image
           ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           : <span style={{ fontSize: 52 }}>{product.emoji || "📦"}</span>
