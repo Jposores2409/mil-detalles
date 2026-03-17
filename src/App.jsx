@@ -53,7 +53,7 @@ const css = `
     min-height: 100vh;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
-    background-color: #fdf6ee;
+    background-color: #f5f3ef;
     background-image:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeBlend in='SourceGraphic' mode='multiply'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23paper)' opacity='0.45'/%3E%3C/svg%3E");
     background-size: 300px 300px;
@@ -444,7 +444,7 @@ function ProductCard({ product, onClick, isFav, onToggleFav }) {
   const finalPrice  = hasDiscount ? product.price * (1 - product.discount/100) : product.price;
   return (
     <div className="card card-click" onClick={() => onClick(product)} style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ background: C.accentLt, height: 160, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative", padding: "12px" }}>
+      <div style={{ background: "#ffffff", height: 180, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative", padding: "12px" }}>
         {product.image
           ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           : <span style={{ fontSize: 52 }}>{product.emoji || "📦"}</span>
