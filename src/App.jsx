@@ -18,7 +18,7 @@ const INITIAL_PRODUCTS = [
 ];
  
 const ADMIN      = { email: "mildetalles.24", password: "mildetalles.24", name: "Administrador" };
-const CATEGORIES = ["Todos", "Librería", "Regalería", "Perfumería"];
+const DEFAULT_CATEGORIES = ["Librería", "Regalería", "Perfumería"];
 const fmt        = (n) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
  
 // ── PALETA MINIMALISTA ───────────────────────────────────────────────────────
@@ -156,6 +156,29 @@ const css = `
   /* ── MISC ── */
   .divider       { border: none; border-top: 1px solid ${C.border}; }
   .section-label { font-family: 'Inter',sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: ${C.muted}; }
+  /* Banner promoción */
+  .promo-banner { width:100%; background: linear-gradient(90deg, ${C.accent}, #1a4a8a); color:#fff; padding: 10px 16px; text-align:center; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.3px; position:relative; }
+  .promo-banner-close { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(255,255,255,0.7); font-size:18px; cursor:pointer; line-height:1; padding:0 4px; }
+  .promo-banner-close:hover { color:#fff; }
+ 
+  /* Carrusel destacados */
+  .carousel-wrap { overflow:hidden; position:relative; }
+  .carousel-track { display:flex; gap:14px; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); will-change:transform; }
+  .carousel-track .card { flex-shrink:0; width: 220px; }
+  .carousel-btn { position:absolute; top:50%; transform:translateY(-50%); z-index:10; width:36px; height:36px; border-radius:50%; background:${C.surface}; border:1px solid ${C.borderDk}; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,0.12); transition:all 0.15s; font-size:16px; }
+  .carousel-btn:hover { background:${C.accent}; color:#fff; border-color:${C.accent}; }
+  .carousel-btn-left  { left: 0; }
+  .carousel-btn-right { right: 0; }
+ 
+  /* Favoritos */
+  .fav-btn { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.9); border:none; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; box-shadow:0 1px 6px rgba(0,0,0,0.1); transition:transform 0.15s, background 0.15s; z-index:2; }
+  .fav-btn:hover { transform:scale(1.15); }
+  .fav-btn.active { background:#fff0f0; }
+ 
+  /* Precio con descuento */
+  .price-original { text-decoration:line-through; color:${C.muted}; font-size:12px; font-family:'Inter',sans-serif; }
+  .price-discount  { background:#c0392b; color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:'Inter',sans-serif; }
+ 
   .wa-float { position: fixed; bottom: 24px; right: 24px; z-index: 500; width: 56px; height: 56px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(37,211,102,0.5); cursor: pointer; border: none; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; animation: waPulse 2.5s ease-in-out infinite; }
   .wa-float:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(37,211,102,0.65); }
   @keyframes waPulse { 0%,100%{box-shadow:0 4px 20px rgba(37,211,102,0.5)} 50%{box-shadow:0 4px 36px rgba(37,211,102,0.8)} }
@@ -224,8 +247,10 @@ function LoginModal({ onClose, onLogin }) {
 }
  
 // ── PRODUCT DETAIL MODAL ──────────────────────────────────────────────────────
-function ProductModal({ product, onClose, onAdd }) {
-  const tagStyle = C.tag[product.tag] || {};
+function ProductModal({ product, onClose, onAdd, isFav, onToggleFav }) {
+  const tagStyle    = C.tag[product.tag] || {};
+  const hasDiscount = product.discount > 0;
+  const finalPrice  = hasDiscount ? product.price * (1 - product.discount/100) : product.price;
   return (
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 540 }}>
@@ -254,7 +279,11 @@ function ProductModal({ product, onClose, onAdd }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, gap: 12, flexWrap: "wrap" }}>
           <div>
             <p className="section-label">Precio</p>
-            <p style={{ fontSize: 28, fontFamily: "'Playfair Display',serif", fontWeight: 700, marginTop: 4 }}>{fmt(product.price)}</p>
+            <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", marginTop:4 }}>
+              <p style={{ fontSize:28, fontFamily:"'Playfair Display',serif", fontWeight:700, color: hasDiscount ? C.danger : C.text }}>{fmt(finalPrice)}</p>
+              {hasDiscount && <span className="price-original" style={{ fontSize:16 }}>{fmt(product.price)}</span>}
+              {hasDiscount && <span className="price-discount" style={{ fontSize:12, padding:"3px 8px" }}>-{product.discount}%</span>}
+            </div>
             <p style={{ fontSize: 12, marginTop: 5, fontWeight: 500, color: product.stock > 5 ? C.success : product.stock > 0 ? "#b8860b" : C.danger }}>
               {product.stock > 0 ? `${product.stock} unidades disponibles` : "Sin stock"}
             </p>
@@ -334,8 +363,8 @@ function CartModal({ cart, products, onClose, onUpdate, onCheckout }) {
 }
  
 // ── PRODUCT FORM (admin) ──────────────────────────────────────────────────────
-function ProductFormModal({ product, onSave, onClose }) {
-  const empty = { name: "", category: "Librería", price: "", stock: "", description: "", image: null, tag: "" };
+function ProductFormModal({ product, onSave, onClose, categories }) {
+  const empty = { name: "", category: "Librería", price: "", stock: "", description: "", image: null, tag: "", discount: 0 };
   const [form, setForm] = useState(product ? { ...product, price: String(product.price), stock: String(product.stock) } : empty);
   const upd  = (k, v) => setForm(f => ({ ...f, [k]: v }));
  
@@ -378,15 +407,16 @@ function ProductFormModal({ product, onSave, onClose }) {
               <input type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} disabled={uploading} />
             </label>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div><Label text="Precio ($)" /><input className="input" type="number" value={form.price} onChange={e => upd("price", e.target.value)} placeholder="0" /></div>
             <div><Label text="Stock" /><input className="input" type="number" value={form.stock} onChange={e => upd("stock", e.target.value)} placeholder="0" /></div>
+            <div><Label text="Descuento (%)" /><input className="input" type="number" value={form.discount||0} onChange={e => upd("discount", e.target.value)} placeholder="0" min="0" max="99" /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <Label text="Categoría" />
               <select className="input" value={form.category} onChange={e => upd("category", e.target.value)}>
-                {["Librería", "Regalería", "Perfumería"].map(c => <option key={c}>{c}</option>)}
+                {(categories || DEFAULT_CATEGORIES).filter(c => c !== "Todos").map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -408,15 +438,20 @@ function ProductFormModal({ product, onSave, onClose }) {
 }
  
 // ── PRODUCT CARD ──────────────────────────────────────────────────────────────
-function ProductCard({ product, onClick }) {
+function ProductCard({ product, onClick, isFav, onToggleFav }) {
   const tagStyle = C.tag[product.tag] || {};
+  const hasDiscount = product.discount > 0;
+  const finalPrice  = hasDiscount ? product.price * (1 - product.discount/100) : product.price;
   return (
     <div className="card card-click" onClick={() => onClick(product)} style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ background: C.accentLt, height: 140, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <div style={{ background: C.accentLt, height: 140, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position:"relative" }}>
         {product.image
           ? <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           : <span style={{ fontSize: 52 }}>{product.emoji || "📦"}</span>
         }
+        <button className={`fav-btn ${isFav ? "active" : ""}`} onClick={e => { e.stopPropagation(); onToggleFav(product.id); }} title={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}>
+          {isFav ? "❤️" : "🤍"}
+        </button>
       </div>
       <div style={{ padding: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -428,7 +463,11 @@ function ProductCard({ product, onClick }) {
           {product.description}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 17 }}>{fmt(product.price)}</p>
+          <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+            <p style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:17, color: hasDiscount ? C.danger : C.text }}>{fmt(finalPrice)}</p>
+            {hasDiscount && <span className="price-original">{fmt(product.price)}</span>}
+            {hasDiscount && <span className="price-discount">-{product.discount}%</span>}
+          </div>
           <p style={{ fontSize: 11, fontWeight: 500, color: product.stock > 5 ? C.success : product.stock > 0 ? "#b8860b" : C.danger }}>
             {product.stock > 0 ? `${product.stock} en stock` : "Agotado"}
           </p>
@@ -439,11 +478,13 @@ function ProductCard({ product, onClick }) {
 }
  
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
-function AdminPanel({ products, onAdd, onEdit, onDelete }) {
-  const [showForm, setShowForm] = useState(false);
-  const [editProd, setEditProd] = useState(null);
-  const [search,   setSearch]   = useState("");
-  const [cat,      setCat]      = useState("Todos");
+function AdminPanel({ products, onAdd, onEdit, onDelete, categories, onAddCategory, onDeleteCategory }) {
+  const [showForm,   setShowForm]   = useState(false);
+  const [editProd,   setEditProd]   = useState(null);
+  const [search,     setSearch]     = useState("");
+  const [cat,        setCat]        = useState("Todos");
+  const [adminTab,   setAdminTab]   = useState("productos");
+  const [newCatName, setNewCatName] = useState("");
  
   const filtered = products.filter(p =>
     (cat === "Todos" || p.category === cat) &&
@@ -455,19 +496,59 @@ function AdminPanel({ products, onAdd, onEdit, onDelete }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <p className="section-label" style={{ marginBottom: 4 }}>Panel de control</p>
-          <h2 style={{ fontSize: 28 }}>Gestión de productos</h2>
-          <p style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>{products.length} productos registrados</p>
+          <h2 style={{ fontSize: 28 }}>Administración</h2>
         </div>
-        <button className="btn-primary" onClick={() => { setEditProd(null); setShowForm(true); }}>+ Nuevo producto</button>
+        {adminTab === "productos" && <button className="btn-primary" onClick={() => { setEditProd(null); setShowForm(true); }}>+ Nuevo producto</button>}
       </div>
  
+      {/* Pestañas */}
+      <div style={{ display:"flex", gap:8, marginBottom:24, borderBottom:`1px solid ${C.border}`, paddingBottom:12 }}>
+        {["productos","categorías","banner"].map(tab => (
+          <button key={tab} className={`pill ${adminTab===tab?"active":""}`} onClick={() => setAdminTab(tab)} style={{ textTransform:"capitalize" }}>{tab}</button>
+        ))}
+      </div>
+ 
+      {/* ── PESTAÑA CATEGORÍAS ── */}
+      {adminTab === "categorías" && (
+        <div className="card" style={{ padding:24, maxWidth:480 }}>
+          <h3 style={{ fontSize:18, marginBottom:20 }}>Categorías</h3>
+          <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+            <input className="input" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nueva categoría..." onKeyDown={e => e.key==="Enter" && newCatName.trim() && (onAddCategory(newCatName.trim()), setNewCatName(""))} />
+            <button className="btn-primary" style={{ flexShrink:0 }} onClick={() => { if(newCatName.trim()){ onAddCategory(newCatName.trim()); setNewCatName(""); } }}>Agregar</button>
+          </div>
+          {categories.filter(c => c !== "Todos").map(cat => (
+            <div key={cat} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+              <span style={{ fontWeight:500 }}>{cat}</span>
+              {!DEFAULT_CATEGORIES.includes(cat) && (
+                <button className="btn-danger btn-sm" onClick={() => onDeleteCategory(cat)}>Eliminar</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+ 
+      {/* ── PESTAÑA BANNER ── */}
+      {adminTab === "banner" && (
+        <div className="card" style={{ padding:24, maxWidth:480 }}>
+          <h3 style={{ fontSize:18, marginBottom:20 }}>Banner de promoción</h3>
+          <p style={{ color:C.muted, fontSize:13, marginBottom:12 }}>Este texto aparece en la franja superior de la tienda.</p>
+          <textarea className="input" rows={3} defaultValue="🎁 ¡Envío gratis en compras mayores a $10.000!" id="bannerInput" />
+          <button className="btn-primary" style={{ marginTop:12, width:"100%" }} onClick={() => {
+            const val = document.getElementById("bannerInput").value;
+            if(val) { window.__setBannerText && window.__setBannerText(val); }
+          }}>Guardar banner</button>
+        </div>
+      )}
+ 
+      {/* ── PESTAÑA PRODUCTOS ── */}
+      {adminTab === "productos" && <>
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <div className="search-wrap" style={{ flex: 1, minWidth: 200, maxWidth: 340 }}>
           <span className="search-icon">🔍</span>
           <input className="input input-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..." />
         </div>
         <select className="input" value={cat} onChange={e => setCat(e.target.value)} style={{ width: "auto", minWidth: 140 }}>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          {categories.map(c => <option key={c}>{c}</option>)}
         </select>
       </div>
  
@@ -514,8 +595,9 @@ function AdminPanel({ products, onAdd, onEdit, onDelete }) {
       </div>
  
       {showForm && (
-        <ProductFormModal product={editProd} onSave={editProd ? onEdit : onAdd} onClose={() => { setShowForm(false); setEditProd(null); }} />
+        <ProductFormModal product={editProd} categories={categories} onSave={editProd ? onEdit : onAdd} onClose={() => { setShowForm(false); setEditProd(null); }} />
       )}
+      </>}
     </div>
   );
 }
@@ -534,7 +616,11 @@ export default function App() {
   const [filterCat,  setFilterCat]  = useState("Todos");
   const [sortBy,     setSortBy]     = useState("default");
   const [toast,      setToast]      = useState(null);
-  const [splashDone, setSplashDone] = useState(false);
+  const [splashDone,  setSplashDone]  = useState(false);
+  const [categories,  setCategories]  = useState(["Todos", ...DEFAULT_CATEGORIES]);
+  const [favorites,   setFavorites]   = useState([]);
+  const [showBanner,  setShowBanner]  = useState(true);
+  const [bannerText,  setBannerText]  = useState("🎁 ¡Envío gratis en compras mayores a $10.000!");
  
   // Cargar productos desde Supabase
   useEffect(() => {
@@ -552,6 +638,8 @@ export default function App() {
     .filter(p => (filterCat === "Todos" || p.category === filterCat) && p.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => sortBy === "asc" ? a.price - b.price : sortBy === "desc" ? b.price - a.price : a.id - b.id);
  
+  const toggleFav = (id) => setFavorites(fs => fs.includes(id) ? fs.filter(f => f !== id) : [...fs, id]);
+ 
   const addToCart  = (id) => { setCart(c => ({ ...c, [id]: (c[id] || 0) + 1 })); showToast("Producto agregado al carrito ✓"); };
   const updateCart = (id, qty) => qty <= 0 ? setCart(c => { const n = { ...c }; delete n[id]; return n; }) : setCart(c => ({ ...c, [id]: qty }));
   const WA_NUMBER = "5493815779570";
@@ -564,7 +652,12 @@ export default function App() {
     setShowCart(false);
     showToast("Redirigiendo a WhatsApp 🎉");
   };
-  const logout     = () => { setUser(null); setView("shop"); showToast("Sesión cerrada"); };
+  const logout        = () => { setUser(null); setView("shop"); showToast("Sesión cerrada"); };
+  const addCategory    = (name) => { if(!categories.includes(name)){ setCategories(cs => [...cs, name]); showToast("Categoría creada ✓"); } };
+  const deleteCategory = (name) => { setCategories(cs => cs.filter(c => c !== name)); if(filterCat===name) setFilterCat("Todos"); showToast("Categoría eliminada"); };
+ 
+  // Exponer setBannerText al panel admin
+  useEffect(() => { window.__setBannerText = setBannerText; }, []);
  
   const addProduct = async (p) => {
     try {
@@ -600,6 +693,14 @@ export default function App() {
           <div className="splash-logo">
             <img src="/logo.jpg" alt="Mil Detalles" style={{ width: 'clamp(180px,45vw,300px)', height: 'auto', objectFit: 'contain' }} />
           </div>
+        </div>
+      )}
+ 
+      {/* BANNER PROMOCIÓN */}
+      {showBanner && (
+        <div className="promo-banner">
+          <span>{bannerText}</span>
+          <button className="promo-banner-close" onClick={() => setShowBanner(false)}>×</button>
         </div>
       )}
  
@@ -662,6 +763,51 @@ export default function App() {
             </p>
           </div>
  
+          {/* CARRUSEL DESTACADOS */}
+          {(() => {
+            const featured = products.filter(p => p.tag === "Exclusivo" || p.tag === "Popular");
+            if (featured.length === 0) return null;
+            const [idx, setIdx] = useState(0);
+            const visible = 1;
+            const max = Math.max(0, featured.length - visible);
+            return (
+              <div style={{ padding: "24px 0 8px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+                <div className="page-wrap">
+                  <p className="section-label" style={{ marginBottom: 14 }}>✨ Destacados</p>
+                  <div style={{ position: "relative", padding: "0 44px" }}>
+                    <button className="carousel-btn carousel-btn-left" onClick={() => setIdx(i => Math.max(0, i-1))} disabled={idx===0} style={{ opacity: idx===0 ? 0.3 : 1 }}>‹</button>
+                    <div className="carousel-wrap">
+                      <div className="carousel-track" style={{ transform: `translateX(-${idx * 234}px)` }}>
+                        {featured.map(p => {
+                          const tagStyle = C.tag[p.tag] || {};
+                          const hasDiscount = p.discount > 0;
+                          const finalPrice  = hasDiscount ? p.price * (1 - p.discount/100) : p.price;
+                          return (
+                            <div key={p.id} className="card card-click carousel-track" style={{ width: 220, padding: 0, overflow:"hidden", flexShrink:0 }} onClick={() => setSelected(p)}>
+                              <div style={{ background: C.accentLt, height:120, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
+                                {p.image ? <img src={p.image} alt={p.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:44 }}>{p.emoji||"📦"}</span>}
+                                {p.tag && <span className="tag" style={{ position:"absolute", top:8, left:8, background:tagStyle.bg, color:tagStyle.color }}>{p.tag}</span>}
+                              </div>
+                              <div style={{ padding:"12px" }}>
+                                <p style={{ fontWeight:600, fontSize:13, marginBottom:6, lineHeight:1.3 }}>{p.name}</p>
+                                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                  <p style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:16, color: hasDiscount ? C.danger : C.text }}>{fmt(finalPrice)}</p>
+                                  {hasDiscount && <span className="price-original">{fmt(p.price)}</span>}
+                                  {hasDiscount && <span className="price-discount">-{p.discount}%</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button className="carousel-btn carousel-btn-right" onClick={() => setIdx(i => Math.min(max, i+1))} disabled={idx>=max} style={{ opacity: idx>=max ? 0.3 : 1 }}>›</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+ 
           {/* Filters */}
           <div className="filters-bar">
             <div className="page-wrap">
@@ -671,8 +817,8 @@ export default function App() {
                   <input className="input input-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." />
                 </div>
                 <div className="pills-scroll" style={{ flex: "1 1 auto" }}>
-                  {CATEGORIES.map(c => (
-                    <button key={c} className={`pill ${filterCat === c ? "active" : ""}`} onClick={() => setFilterCat(c)}>{c}</button>
+                  {categories.map(cat => (
+                    <button key={cat} className={`pill ${filterCat === cat ? "active" : ""}`} onClick={() => setFilterCat(cat)}>{cat}</button>
                   ))}
                 </div>
                 <select className="input" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width: "auto", minWidth: 130, flexShrink: 0 }}>
@@ -694,7 +840,7 @@ export default function App() {
               </div>
             ) : (
               <div className="product-grid">
-                {filtered.map(p => <ProductCard key={p.id} product={p} onClick={setSelected} />)}
+                {filtered.map(p => <ProductCard key={p.id} product={p} onClick={setSelected} isFav={favorites.includes(p.id)} onToggleFav={toggleFav} />)}
               </div>
             )}
           </div>
@@ -714,11 +860,11 @@ export default function App() {
  
       {/* ADMIN */}
       {view === "admin" && user && (
-        <AdminPanel products={products} onAdd={addProduct} onEdit={editProduct} onDelete={deleteProduct} />
+        <AdminPanel products={products} onAdd={addProduct} onEdit={editProduct} onDelete={deleteProduct} categories={categories} onAddCategory={addCategory} onDeleteCategory={deleteCategory} />
       )}
  
       {/* MODALS */}
-      {selected   && <ProductModal product={selected} onClose={() => setSelected(null)} onAdd={addToCart} />}
+      {selected   && <ProductModal product={selected} onClose={() => setSelected(null)} onAdd={addToCart} isFav={favorites.includes(selected.id)} onToggleFav={toggleFav} />}
       {showLogin  && <LoginModal onClose={() => setShowLogin(false)} onLogin={() => { setUser(ADMIN); showToast(`Bienvenido, ${ADMIN.name}`); }} />}
       {showCart   && <CartModal cart={cart} products={products} onClose={() => setShowCart(false)} onUpdate={updateCart} onCheckout={checkout} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
@@ -733,3 +879,4 @@ export default function App() {
     </>
   );
 }
+ 
