@@ -759,7 +759,7 @@ export default function App() {
               Mil Detalles
             </h1>
             <p style={{ color: "#b8890b", fontFamily:"'Inter',sans-serif", fontWeight: 600, fontSize: "clamp(13px,3vw,16px)", letterSpacing: 2, textTransform: "uppercase", marginTop: 12 }}>
-              Librería · Regalería · Perfumería
+              Librería · Regalería
             </p>
           </div>
  
